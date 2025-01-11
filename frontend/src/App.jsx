@@ -16,7 +16,7 @@ import { ethers } from "ethers";
 import LostAndFound from "./artifacts/contracts/LostAndFound.sol/LostAndFound.json";
 import RecentLostItems from "./components/RecentLostItems";
 
-const contractAddress = "0x832f40a4cC0002654c3B918F3E9a4124Eff637AF"; // You'll get this after deployment
+const contractAddress = "0x21300Fb85259788990BA1ECCB5E601263EFfafa8"; // You'll get this after deployment
 
 function App() {
   const [account, setAccount] = useState("");
@@ -118,11 +118,23 @@ function App() {
           />
           <Route
             path="/report-lost"
-            element={account ? <ReportLostItem /> : <Navigate to="/" />}
+            element={
+              account ? (
+                <ReportLostItem account={account} />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
           />
           <Route
             path="/submit-found"
-            element={account ? <SubmitFoundItem /> : <Navigate to="/" />}
+            element={
+              account ? (
+                <SubmitFoundItem account={account} />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
           />
           <Route
             path="/profile"
@@ -132,7 +144,13 @@ function App() {
           />
           <Route
             path="/recent-lost-items"
-            element={account ? <RecentLostItems /> : <Navigate to="/" />}
+            element={
+              account ? (
+                <RecentLostItems account={account} />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
           />
         </Routes>
       </div>

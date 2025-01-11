@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { Bell, UserCircle } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 
 const Navbar = ({ account, onDisconnect }) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -142,6 +143,7 @@ const Navbar = ({ account, onDisconnect }) => {
                   )}
                 </AnimatePresence>
               </div>
+              <NotificationBell account={account} />
             </div>
           </div>
         </div>

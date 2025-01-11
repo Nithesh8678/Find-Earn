@@ -1,115 +1,139 @@
-import { ArrowLeft } from "lucide-react";
-import Input from "./ui/Input";
-import Button from "./ui/Button";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ethers } from "ethers";
 import Navbar from "./Navbar";
+import LostAndFound from "../artifacts/contracts/LostAndFound.sol/LostAndFound.json";
+
+const contractAddress = "0x21300Fb85259788990BA1ECCB5E601263EFfafa8";
 
 const SubmitFoundItem = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const selectedItem = location.state?.selectedItem;
+
+  const [formData, setFormData] = useState({
+    location: "",
+    contact: "",
+    foundDetails: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      if (!selectedItem?.id) {
+        throw new Error("No item selected");
+      }
+
+      if (typeof window.ethereum === "undefined") {
+        throw new Error("Please install MetaMask!");
+      }
+
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(
+        contractAddress,
+        LostAndFound.abi,
+        signer
+      );
+
+      console.log("Marking item as found...", {
+        itemId: selectedItem.id,
+        details: formData.foundDetails,
+        location: formData.location,
+        contact: formData.contact,
+      });
+
+      const transaction = await contract.markItemAsFound(
+        selectedItem.id,
+        formData.foundDetails,
+        formData.location,
+        formData.contact
+      );
+
+      console.log("Transaction sent:", transaction.hash);
+      await transaction.wait();
+      console.log("Transaction confirmed");
+
+      alert("Found item submitted successfully!");
+      navigate("/recent-lost-items");
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error submitting found item: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div
-      className="min-h-screen relative"
-      style={{
-        backgroundImage: 'url("/homebg.png")',
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
-    >
-      <div className="container mx-auto px-4 pt-20">
-        <Navbar />
-
-        {/* Form Section */}
-        <div className="mt-8 relative">
-          <div className="flex items-center gap-4 mb-8">
-            <Link to="/home">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white/90 hover:text-white"
-              >
-                <ArrowLeft className="h-6 w-6" />
-              </Button>
-            </Link>
-            <h1 className="text-5xl font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Report a Found item
-            </h1>
-          </div>
-
-          <form className="max-w-2xl space-y-6 relative z-10">
-            <div className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-white text-lg font-medium">
-                    What was found?
-                  </label>
-                  <Input
-                    placeholder="Item name"
-                    className="h-12 bg-white/10 border-0 text-white placeholder:text-white/50"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-white text-lg font-medium">
-                    Image of the found item
-                  </label>
-                  <Input
-                    type="file"
-                    placeholder="Upload image"
-                    className="h-12 bg-white/10 border-0 text-white placeholder:text-white/50 file:bg-transparent file:border-0 file:text-white/70"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-white text-lg font-medium">
-                  Category
-                </label>
-                <select className="w-full h-12 bg-white/10 border-0 text-white rounded-md p-2">
-                  <option value="" className="bg-gray-800">
-                    Select
-                  </option>
-                  <option value="electronics" className="bg-gray-800">
-                    Electronics
-                  </option>
-                  <option value="jewelry" className="bg-gray-800">
-                    Jewelry
-                  </option>
-                  <option value="documents" className="bg-gray-800">
-                    Documents
-                  </option>
-                  <option value="other" className="bg-gray-800">
-                    Other
-                  </option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-white text-lg font-medium">
-                  Location
-                </label>
-                <Input
-                  placeholder="Where found"
-                  className="h-12 bg-white/10 border-0 text-white placeholder:text-white/50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-white text-lg font-medium">
-                  Date of discovery
-                </label>
-                <Input
-                  placeholder="DD/MM/YYYY"
-                  type="date"
-                  className="h-12 bg-white/10 border-0 text-white placeholder:text-white/50"
-                />
-              </div>
+    <div className="min-h-screen bg-gray-100">
+      <Navbar />
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold mb-6">Submit Found Item</h2>
+          {selectedItem && (
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+              <h3 className="font-semibold text-blue-800">
+                Selected Lost Item
+              </h3>
+              <p className="text-blue-600">Name: {selectedItem.name}</p>
+              <p className="text-blue-600">
+                Description: {selectedItem.description}
+              </p>
             </div>
-
-            <div className="wallet-connect">
-              <button className="bg-purple-600 w-40 hover:bg-purple-700 my-6 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200">
-                Submit
-              </button>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block mb-1">Found Location</label>
+              <input
+                type="text"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+                required
+              />
             </div>
+            <div>
+              <label className="block mb-1">Your Contact Information</label>
+              <input
+                type="text"
+                name="contact"
+                value={formData.contact}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+                required
+              />
+            </div>
+            <div>
+              <label className="block mb-1">Found Details</label>
+              <textarea
+                name="foundDetails"
+                value={formData.foundDetails}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+                placeholder="Please provide details about how you found the item..."
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`w-full bg-blue-500 text-white py-2 rounded ${
+                isSubmitting ? "opacity-50" : "hover:bg-blue-600"
+              }`}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Found Item"}
+            </button>
           </form>
         </div>
       </div>

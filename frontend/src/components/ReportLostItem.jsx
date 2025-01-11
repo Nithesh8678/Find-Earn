@@ -3,7 +3,7 @@ import { ethers } from "ethers";
 import Navbar from "./Navbar";
 import LostAndFound from "../artifacts/contracts/LostAndFound.sol/LostAndFound.json";
 
-const contractAddress = "0x832f40a4cC0002654c3B918F3E9a4124Eff637AF";
+const contractAddress = "0x21300Fb85259788990BA1ECCB5E601263EFfafa8";
 
 const ReportLostItem = () => {
   const [formData, setFormData] = useState({

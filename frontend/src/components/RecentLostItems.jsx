@@ -1,18 +1,28 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
+import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import LostAndFound from "../artifacts/contracts/LostAndFound.sol/LostAndFound.json";
 
-const contractAddress = "0x832f40a4cC0002654c3B918F3E9a4124Eff637AF";
+const contractAddress = "0x21300Fb85259788990BA1ECCB5E601263EFfafa8";
 
 function RecentLostItems() {
   const [lostItems, setLostItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     connectAndFetchItems();
   }, []);
+
+  const handleItemClick = (item) => {
+    navigate("/submit-found", {
+      state: {
+        selectedItem: item,
+      },
+    });
+  };
 
   async function connectAndFetchItems() {
     try {
@@ -106,7 +116,8 @@ function RecentLostItems() {
             {lostItems.map((item) => (
               <div
                 key={item.id}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200"
+                onClick={() => handleItemClick(item)}
+                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200 cursor-pointer transform hover:-translate-y-1 transition-transform"
               >
                 <h3 className="text-xl font-semibold mb-2">{item.name}</h3>
                 <p className="text-gray-600 mb-4">{item.description}</p>
