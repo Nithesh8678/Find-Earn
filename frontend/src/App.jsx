@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -16,11 +16,14 @@ import { ethers } from "ethers";
 import LostAndFound from "./artifacts/contracts/LostAndFound.sol/LostAndFound.json";
 import RecentLostItems from "./components/RecentLostItems";
 import { Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
+import Dashboard from "./components/Dashboard";
 
 const contractAddress = "0x749855Fa678f0731273bF3e35748375CaFb34511"; // You'll get this after deployment
 
 function App() {
   const [account, setAccount] = useState("");
+  const [isInitializing, setIsInitializing] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -28,9 +31,63 @@ function App() {
     contact: "",
   });
 
+  // Check for existing connection on mount
+  useEffect(() => {
+    checkConnection();
+  }, []);
+
+  const checkConnection = async () => {
+    try {
+      if (window.ethereum) {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const accounts = await provider.listAccounts();
+
+        if (accounts.length > 0) {
+          setAccount(accounts[0]);
+          // Listen for account changes
+          window.ethereum.on("accountsChanged", handleAccountsChanged);
+          // Listen for chain changes
+          window.ethereum.on("chainChanged", handleChainChanged);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking connection:", error);
+    } finally {
+      setIsInitializing(false);
+    }
+  };
+
+  const handleAccountsChanged = (accounts) => {
+    if (accounts.length > 0) {
+      setAccount(accounts[0]);
+    } else {
+      handleDisconnect();
+    }
+  };
+
+  const handleChainChanged = () => {
+    // Reload the page when chain changes
+    window.location.reload();
+  };
+
   const handleDisconnect = () => {
     setAccount("");
+    // Remove listeners
+    if (window.ethereum) {
+      window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+      window.ethereum.removeListener("chainChanged", handleChainChanged);
+    }
+    toast.success("Wallet disconnected");
   };
+
+  // Show loading state while checking connection
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   async function requestAccount() {
     await window.ethereum.request({ method: "eth_requestAccounts" });
@@ -128,16 +185,7 @@ function App() {
               )
             }
           />
-          <Route
-            path="/submit-found"
-            element={
-              account ? (
-                <SubmitFoundItem account={account} />
-              ) : (
-                <Navigate to="/" />
-              )
-            }
-          />
+
           <Route
             path="/profile"
             element={
@@ -152,6 +200,22 @@ function App() {
               ) : (
                 <Navigate to="/" />
               )
+            }
+          />
+          <Route
+            path="/submit-found"
+            element={
+              account ? (
+                <SubmitFoundItem account={account} />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              account ? <Dashboard account={account} /> : <Navigate to="/" />
             }
           />
         </Routes>

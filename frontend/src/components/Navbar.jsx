@@ -25,8 +25,9 @@ const Navbar = ({ account, onDisconnect, onSearch }) => {
 
   const navLinks = [
     { path: "/home", label: "Home" },
+    { path: "/dashboard", label: "Dashboard" },
     { path: "/report-lost", label: "Report Lost" },
-    { path: "/submit-found", label: "Submit Found" },
+    { path: "/recent-lost-items", label: "Recent Lost Items" },
   ];
 
   const dropdownVariants = {
