@@ -11,6 +11,8 @@ contract LostAndFound {
         string contact;
         bool isFound;
         uint256 timestamp;
+        uint256 reward;  // Reward amount in Wei
+        bool rewardClaimed;
     }
 
     struct Notification {
@@ -31,16 +33,19 @@ contract LostAndFound {
     uint256 public itemCount;
     uint256 public notificationCount;
 
-    event ItemReported(uint256 indexed id, address reporter, string name);
+    event ItemReported(uint256 indexed id, address reporter, string name, uint256 reward);
     event ItemFound(uint256 indexed id, address finder, string foundLocation);
     event NotificationCreated(uint256 indexed notificationId, address indexed receiver, uint256 itemId);
+    event RewardClaimed(uint256 indexed itemId, address finder, uint256 amount);
 
     function reportLostItem(
         string memory _name,
         string memory _description,
         string memory _location,
         string memory _contact
-    ) public {
+    ) public payable {
+        require(msg.value > 0, "Must provide a reward");
+        
         itemCount++;
         lostItems[itemCount] = LostItem(
             itemCount,
@@ -50,10 +55,12 @@ contract LostAndFound {
             _location,
             _contact,
             false,
-            block.timestamp
+            block.timestamp,
+            msg.value,
+            false
         );
 
-        emit ItemReported(itemCount, msg.sender, _name);
+        emit ItemReported(itemCount, msg.sender, _name, msg.value);
     }
 
     function getLostItem(uint256 _id) public view returns (
@@ -64,7 +71,9 @@ contract LostAndFound {
         string memory location,
         string memory contact,
         bool isFound,
-        uint256 timestamp
+        uint256 timestamp,
+        uint256 reward,
+        bool rewardClaimed
     ) {
         LostItem memory item = lostItems[_id];
         return (
@@ -75,7 +84,9 @@ contract LostAndFound {
             item.location,
             item.contact,
             item.isFound,
-            item.timestamp
+            item.timestamp,
+            item.reward,
+            item.rewardClaimed
         );
     }
 
@@ -133,5 +144,33 @@ contract LostAndFound {
         require(notifications[_notificationId].receiver == msg.sender, "Not authorized");
         
         notifications[_notificationId].isRead = true;
+    }
+
+    function claimReward(uint256 _itemId) public {
+        require(_itemId > 0 && _itemId <= itemCount, "Invalid item ID");
+        LostItem storage item = lostItems[_itemId];
+        require(item.isFound, "Item not found yet");
+        require(!item.rewardClaimed, "Reward already claimed");
+        require(msg.sender == item.reporter, "Only reporter can approve reward claim");
+
+        item.rewardClaimed = true;
+        
+        // Get the finder's address from the notifications
+        uint256[] storage userNotifIds = userNotifications[item.reporter];
+        address finder;
+        for(uint i = 0; i < userNotifIds.length; i++) {
+            if(notifications[userNotifIds[i]].itemId == _itemId) {
+                finder = notifications[userNotifIds[i]].finder;
+                break;
+            }
+        }
+        
+        require(finder != address(0), "Finder not found");
+        
+        // Transfer reward to finder
+        (bool sent, ) = payable(finder).call{value: item.reward}("");
+        require(sent, "Failed to send reward");
+        
+        emit RewardClaimed(_itemId, finder, item.reward);
     }
 }

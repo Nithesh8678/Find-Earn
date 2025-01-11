@@ -16,7 +16,7 @@ import { ethers } from "ethers";
 import LostAndFound from "./artifacts/contracts/LostAndFound.sol/LostAndFound.json";
 import RecentLostItems from "./components/RecentLostItems";
 
-const contractAddress = "0x21300Fb85259788990BA1ECCB5E601263EFfafa8"; // You'll get this after deployment
+const contractAddress = "0x749855Fa678f0731273bF3e35748375CaFb34511"; // You'll get this after deployment
 
 function App() {
   const [account, setAccount] = useState("");

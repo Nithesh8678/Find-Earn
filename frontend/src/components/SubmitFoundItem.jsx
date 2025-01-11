@@ -4,7 +4,7 @@ import { ethers } from "ethers";
 import Navbar from "./Navbar";
 import LostAndFound from "../artifacts/contracts/LostAndFound.sol/LostAndFound.json";
 
-const contractAddress = "0x21300Fb85259788990BA1ECCB5E601263EFfafa8";
+const contractAddress = "0x749855Fa678f0731273bF3e35748375CaFb34511";
 
 const SubmitFoundItem = () => {
   const location = useLocation();

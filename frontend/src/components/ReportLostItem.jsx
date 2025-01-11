@@ -3,7 +3,7 @@ import { ethers } from "ethers";
 import Navbar from "./Navbar";
 import LostAndFound from "../artifacts/contracts/LostAndFound.sol/LostAndFound.json";
 
-const contractAddress = "0x21300Fb85259788990BA1ECCB5E601263EFfafa8";
+const contractAddress = "0x749855Fa678f0731273bF3e35748375CaFb34511";
 
 const ReportLostItem = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +11,7 @@ const ReportLostItem = () => {
     description: "",
     location: "",
     contact: "",
+    reward: "", // ETH amount
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -38,24 +39,29 @@ const ReportLostItem = () => {
         signer
       );
 
-      console.log("Submitting lost item...");
+      // Convert ETH to Wei
+      const rewardInWei = ethers.utils.parseEther(formData.reward);
+
+      console.log("Submitting lost item with reward:", formData.reward, "ETH");
       const transaction = await contract.reportLostItem(
         formData.name,
         formData.description,
         formData.location,
-        formData.contact
+        formData.contact,
+        { value: rewardInWei }
       );
 
       console.log("Transaction sent:", transaction.hash);
       await transaction.wait();
       console.log("Transaction confirmed");
 
-      alert("Lost item reported successfully!");
+      alert("Lost item reported successfully with reward!");
       setFormData({
         name: "",
         description: "",
         location: "",
         contact: "",
+        reward: "",
       });
     } catch (error) {
       console.error("Error:", error);
@@ -115,6 +121,24 @@ const ReportLostItem = () => {
                 required
               />
             </div>
+            <div>
+              <label className="block mb-1">Reward Amount (ETH)</label>
+              <input
+                type="number"
+                step="0.001"
+                min="0"
+                name="reward"
+                value={formData.reward}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+                required
+                placeholder="e.g., 0.1"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                This amount will be given to the finder when your item is
+                returned
+              </p>
+            </div>
             <button
               type="submit"
               disabled={isSubmitting}
@@ -122,7 +146,7 @@ const ReportLostItem = () => {
                 isSubmitting ? "opacity-50" : "hover:bg-blue-600"
               }`}
             >
-              {isSubmitting ? "Submitting..." : "Submit Report"}
+              {isSubmitting ? "Submitting..." : "Submit Report with Reward"}
             </button>
           </form>
         </div>

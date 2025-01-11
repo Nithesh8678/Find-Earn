@@ -9,7 +9,7 @@ export function ContractProvider({ children }) {
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
 
-  const contractAddress = "YOUR_DEPLOYED_CONTRACT_ADDRESS"; // Replace after deployment
+  const contractAddress = "0x749855Fa678f0731273bF3e35748375CaFb34511"; // Replace after deployment
 
   useEffect(() => {
     const initContract = async () => {

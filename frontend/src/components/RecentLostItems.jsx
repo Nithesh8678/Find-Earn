@@ -2,19 +2,24 @@ import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
+import ConfirmationDialog from "./ConfirmationDialog";
 import LostAndFound from "../artifacts/contracts/LostAndFound.sol/LostAndFound.json";
 
-const contractAddress = "0x21300Fb85259788990BA1ECCB5E601263EFfafa8";
+const contractAddress = "0x749855Fa678f0731273bF3e35748375CaFb34511";
 
-function RecentLostItems() {
+function RecentLostItems({ account }) {
   const [lostItems, setLostItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [selectedItemForReward, setSelectedItemForReward] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    connectAndFetchItems();
-  }, []);
+    if (account) {
+      connectAndFetchItems();
+    }
+  }, [account]);
 
   const handleItemClick = (item) => {
     navigate("/submit-found", {
@@ -50,15 +55,10 @@ function RecentLostItems() {
         provider
       );
 
-      console.log("Getting item count...");
       const itemCount = await contract.getItemCount();
-      console.log("Total items:", itemCount.toString());
-
       const items = [];
       for (let i = itemCount; i >= 1; i--) {
-        console.log("Fetching item", i);
         const item = await contract.getLostItem(i);
-        console.log("Item data:", item);
         items.push({
           id: item.id.toString(),
           reporter: item.reporter,
@@ -68,10 +68,11 @@ function RecentLostItems() {
           contact: item.contact,
           isFound: item.isFound,
           timestamp: new Date(item.timestamp * 1000).toLocaleString(),
+          reward: ethers.utils.formatEther(item.reward),
+          rewardClaimed: item.rewardClaimed,
         });
       }
 
-      console.log("All items:", items);
       setLostItems(items);
       setError(null);
     } catch (err) {
@@ -81,6 +82,88 @@ function RecentLostItems() {
       setLoading(false);
     }
   }
+
+  const handleClaimReward = async (itemId) => {
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(
+        contractAddress,
+        LostAndFound.abi,
+        signer
+      );
+
+      const transaction = await contract.claimReward(itemId);
+      await transaction.wait();
+
+      alert("Reward claimed successfully!");
+      fetchLostItems();
+    } catch (error) {
+      console.error("Error claiming reward:", error);
+      alert("Error claiming reward: " + error.message);
+    }
+  };
+
+  const handleVerifyClick = (item) => {
+    setSelectedItemForReward(item);
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmReward = async () => {
+    if (!selectedItemForReward) return;
+
+    try {
+      await handleClaimReward(selectedItemForReward.id);
+      setShowConfirmation(false);
+      setSelectedItemForReward(null);
+    } catch (error) {
+      console.error("Error in confirmation:", error);
+    }
+  };
+
+  const isItemOwner = (item) => {
+    return account && item.reporter.toLowerCase() === account.toLowerCase();
+  };
+
+  const renderItemActions = (item) => {
+    if (!item.isFound) {
+      return (
+        <button
+          onClick={() => handleItemClick(item)}
+          className="w-full mt-4 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
+        >
+          I Found This Item
+        </button>
+      );
+    }
+
+    if (item.rewardClaimed) {
+      return (
+        <p className="text-sm text-green-500 mt-2">✓ Reward has been claimed</p>
+      );
+    }
+
+    if (item.isFound && !item.rewardClaimed) {
+      if (isItemOwner(item)) {
+        return (
+          <button
+            onClick={() => handleVerifyClick(item)}
+            className="w-full mt-4 bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition-colors"
+          >
+            Verify & Release Reward
+          </button>
+        );
+      } else {
+        return (
+          <p className="text-sm text-orange-500 mt-2">
+            Waiting for owner verification
+          </p>
+        );
+      }
+    }
+
+    return null;
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -116,8 +199,7 @@ function RecentLostItems() {
             {lostItems.map((item) => (
               <div
                 key={item.id}
-                onClick={() => handleItemClick(item)}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200 cursor-pointer transform hover:-translate-y-1 transition-transform"
+                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200"
               >
                 <h3 className="text-xl font-semibold mb-2">{item.name}</h3>
                 <p className="text-gray-600 mb-4">{item.description}</p>
@@ -139,17 +221,32 @@ function RecentLostItems() {
                     </span>
                   </p>
                   <p>
+                    <strong>Reward:</strong>{" "}
+                    <span className="text-green-600 font-semibold">
+                      {item.reward} ETH
+                    </span>
+                  </p>
+                  <p>
                     <strong>Reported:</strong> {item.timestamp}
                   </p>
-                  <p className="text-xs mt-2 truncate">
-                    <strong>Reporter:</strong>{" "}
-                    <span className="font-mono">{item.reporter}</span>
-                  </p>
+                  {isItemOwner(item) && (
+                    <p className="text-xs mt-2 text-blue-500">
+                      You reported this item
+                    </p>
+                  )}
+                  <div className="mt-4">{renderItemActions(item)}</div>
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        <ConfirmationDialog
+          isOpen={showConfirmation}
+          onClose={() => setShowConfirmation(false)}
+          onConfirm={handleConfirmReward}
+          itemName={selectedItemForReward?.name}
+        />
       </div>
     </div>
   );
