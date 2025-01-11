@@ -122,7 +122,7 @@ function App() {
           />
           <Route
             path="/submit-found"
-            element={account ? <ContractTest /> : <Navigate to="/" />}
+            element={account ? <SubmitFoundItem /> : <Navigate to="/" />}
           />
           <Route
             path="/profile"
