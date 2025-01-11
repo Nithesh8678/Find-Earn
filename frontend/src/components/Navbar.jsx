@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
-import { Bell, UserCircle } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Bell, UserCircle, Search } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 
-const Navbar = ({ account, onDisconnect }) => {
+const Navbar = ({ account, onDisconnect, onSearch }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Optimized scroll handler
   const handleScroll = useCallback(() => {
@@ -52,9 +55,20 @@ const Navbar = ({ account, onDisconnect }) => {
     },
   };
 
+  const handleSearch = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    if (location.pathname !== "/recent-lost-items") {
+      navigate("/recent-lost-items");
+    }
+    onSearch(query);
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50">
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
         className={`mx-4 mt-4 rounded-full ${
           isScrolled ? "bg-black/80" : "bg-black/50"
         } backdrop-blur-md shadow-lg transition-all duration-300`}
@@ -63,9 +77,12 @@ const Navbar = ({ account, onDisconnect }) => {
           <div className="flex items-center justify-between h-14">
             {/* Logo */}
             <Link to="/home" className="flex items-center">
-              <div className="text-white text-xl font-semibold font-iceberg">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="text-white text-xl font-semibold font-iceberg"
+              >
                 Find&Earn
-              </div>
+              </motion.div>
             </Link>
 
             {/* Navigation Links */}
@@ -83,18 +100,27 @@ const Navbar = ({ account, onDisconnect }) => {
               </div>
             </div>
 
-            {/* Right Section */}
-            <div className="flex items-center gap-4">
-              <div className="relative">
+            {/* Search Bar */}
+            <div className="relative flex-1 max-w-xl mx-4">
+              <motion.div
+                animate={isSearchFocused ? { scale: 1.02 } : { scale: 1 }}
+                className="relative"
+              >
                 <input
                   type="text"
-                  placeholder="Search Here"
-                  className="w-[200px] bg-[#2563EB]/20 border-0 text-white placeholder:text-white/70 rounded-md px-3 py-1.5"
+                  placeholder="Search lost items..."
+                  value={searchQuery}
+                  onChange={handleSearch}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
+                  className="w-full bg-[#2563EB]/20 border-0 text-white placeholder:text-white/70 rounded-md px-10 py-1.5 transition-all duration-300 focus:ring-2 focus:ring-purple-400 focus:bg-[#2563EB]/30"
                 />
-              </div>
-              <button className="text-white hover:text-purple-400 transition-colors duration-200">
-                <Bell className="h-5 w-5" />
-              </button>
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/70" />
+              </motion.div>
+            </div>
+
+            {/* Right Section */}
+            <div className="flex items-center gap-4">
               <div className="relative">
                 <button
                   className="flex items-center text-white hover:text-purple-400 transition-colors duration-200"
@@ -147,7 +173,7 @@ const Navbar = ({ account, onDisconnect }) => {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </nav>
   );
 };

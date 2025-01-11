@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { Bell } from "lucide-react";
+import { toast } from "react-hot-toast";
 import LostAndFound from "../artifacts/contracts/LostAndFound.sol/LostAndFound.json";
 
 const contractAddress = "0x749855Fa678f0731273bF3e35748375CaFb34511";
@@ -39,28 +40,58 @@ const NotificationBell = ({ account }) => {
 
       setNotifications(formattedNotifs);
       setUnreadCount(formattedNotifs.filter((n) => !n.isRead).length);
+
+      const unreadNotifs = formattedNotifs.filter((n) => !n.isRead);
+      if (unreadNotifs.length > 0) {
+        toast.custom((t) => (
+          <div className="bg-white rounded-lg shadow-lg p-4 max-w-md">
+            <h4 className="font-semibold text-blue-800">New Item Found!</h4>
+            <p className="text-sm mt-1">
+              Someone has found your lost item. Check your notifications for
+              details.
+            </p>
+          </div>
+        ));
+      }
     } catch (error) {
       console.error("Error fetching notifications:", error);
     }
   };
 
   const setupNotificationListener = async () => {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const contract = new ethers.Contract(
-      contractAddress,
-      LostAndFound.abi,
-      provider
-    );
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const contract = new ethers.Contract(
+        contractAddress,
+        LostAndFound.abi,
+        provider
+      );
 
-    contract.on("NotificationCreated", (notificationId, receiver, itemId) => {
-      if (receiver.toLowerCase() === account.toLowerCase()) {
-        fetchNotifications();
-      }
-    });
+      contract.on("ItemFound", async (itemId, finder, location) => {
+        const item = await contract.getLostItem(itemId);
+        if (item.reporter.toLowerCase() === account.toLowerCase()) {
+          toast.success("Someone found your item!", {
+            duration: 5000,
+            position: "top-right",
+            icon: "🎉",
+          });
+          fetchNotifications();
+        }
+      });
 
-    return () => {
-      contract.removeAllListeners("NotificationCreated");
-    };
+      contract.on("NotificationCreated", (notificationId, receiver, itemId) => {
+        if (receiver.toLowerCase() === account.toLowerCase()) {
+          fetchNotifications();
+        }
+      });
+
+      return () => {
+        contract.removeAllListeners("ItemFound");
+        contract.removeAllListeners("NotificationCreated");
+      };
+    } catch (error) {
+      console.error("Error setting up listeners:", error);
+    }
   };
 
   const markAsRead = async (notificationId) => {

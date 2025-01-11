@@ -4,11 +4,14 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import ConfirmationDialog from "./ConfirmationDialog";
 import LostAndFound from "../artifacts/contracts/LostAndFound.sol/LostAndFound.json";
+import { motion, AnimatePresence } from "framer-motion";
 
 const contractAddress = "0x749855Fa678f0731273bF3e35748375CaFb34511";
 
 function RecentLostItems({ account }) {
   const [lostItems, setLostItems] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -20,6 +23,30 @@ function RecentLostItems({ account }) {
       connectAndFetchItems();
     }
   }, [account]);
+
+  useEffect(() => {
+    filterItems(searchQuery);
+  }, [lostItems, searchQuery]);
+
+  const filterItems = (query) => {
+    if (!query) {
+      setFilteredItems(lostItems);
+      return;
+    }
+
+    const lowercaseQuery = query.toLowerCase();
+    const filtered = lostItems.filter(
+      (item) =>
+        item.name.toLowerCase().includes(lowercaseQuery) ||
+        item.description.toLowerCase().includes(lowercaseQuery) ||
+        item.location.toLowerCase().includes(lowercaseQuery)
+    );
+    setFilteredItems(filtered);
+  };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+  };
 
   const handleItemClick = (item) => {
     navigate("/submit-found", {
@@ -165,13 +192,23 @@ function RecentLostItems({ account }) {
     return null;
   };
 
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 },
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
-      <Navbar />
+      <Navbar account={account} onSearch={handleSearch} />
       <div className="container mx-auto px-4 py-8">
-        <h2 className="text-3xl font-bold mb-6 text-center">
+        <motion.h2
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-3xl font-bold mb-6 text-center"
+        >
           Recent Lost Items
-        </h2>
+        </motion.h2>
 
         {error && (
           <div className="text-red-500 text-center mb-4">
@@ -195,50 +232,71 @@ function RecentLostItems({ account }) {
             <p className="text-xl">No lost items reported yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {lostItems.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200"
-              >
-                <h3 className="text-xl font-semibold mb-2">{item.name}</h3>
-                <p className="text-gray-600 mb-4">{item.description}</p>
-                <div className="space-y-2 text-sm text-gray-500">
-                  <p>
-                    <strong>Location:</strong> {item.location}
-                  </p>
-                  <p>
-                    <strong>Contact:</strong> {item.contact}
-                  </p>
-                  <p>
-                    <strong>Status:</strong>{" "}
-                    <span
-                      className={`${
-                        item.isFound ? "text-green-500" : "text-red-500"
-                      }`}
-                    >
-                      {item.isFound ? "Found" : "Still Lost"}
-                    </span>
-                  </p>
-                  <p>
-                    <strong>Reward:</strong>{" "}
-                    <span className="text-green-600 font-semibold">
-                      {item.reward} ETH
-                    </span>
-                  </p>
-                  <p>
-                    <strong>Reported:</strong> {item.timestamp}
-                  </p>
-                  {isItemOwner(item) && (
-                    <p className="text-xs mt-2 text-blue-500">
-                      You reported this item
+          <AnimatePresence mode="wait">
+            <motion.div
+              layout
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {filteredItems.map((item) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  variants={itemVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200"
+                >
+                  <h3 className="text-xl font-semibold mb-2">{item.name}</h3>
+                  <p className="text-gray-600 mb-4">{item.description}</p>
+                  <div className="space-y-2 text-sm text-gray-500">
+                    <p>
+                      <strong>Location:</strong> {item.location}
                     </p>
-                  )}
-                  <div className="mt-4">{renderItemActions(item)}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+                    <p>
+                      <strong>Contact:</strong> {item.contact}
+                    </p>
+                    <p>
+                      <strong>Status:</strong>{" "}
+                      <span
+                        className={`${
+                          item.isFound ? "text-green-500" : "text-red-500"
+                        }`}
+                      >
+                        {item.isFound ? "Found" : "Still Lost"}
+                      </span>
+                    </p>
+                    <p>
+                      <strong>Reward:</strong>{" "}
+                      <span className="text-green-600 font-semibold">
+                        {item.reward} ETH
+                      </span>
+                    </p>
+                    <p>
+                      <strong>Reported:</strong> {item.timestamp}
+                    </p>
+                    {isItemOwner(item) && (
+                      <p className="text-xs mt-2 text-blue-500">
+                        You reported this item
+                      </p>
+                    )}
+                    <div className="mt-4">{renderItemActions(item)}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {filteredItems.length === 0 && !loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-gray-500 mt-8"
+          >
+            <p className="text-xl">No items found matching your search</p>
+          </motion.div>
         )}
 
         <ConfirmationDialog

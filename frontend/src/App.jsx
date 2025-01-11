@@ -15,6 +15,7 @@ import ContractTest from "./components/ContractTest";
 import { ethers } from "ethers";
 import LostAndFound from "./artifacts/contracts/LostAndFound.sol/LostAndFound.json";
 import RecentLostItems from "./components/RecentLostItems";
+import { Toaster } from "react-hot-toast";
 
 const contractAddress = "0x749855Fa678f0731273bF3e35748375CaFb34511"; // You'll get this after deployment
 
@@ -86,6 +87,7 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen">
+        <Toaster />
         <Routes>
           <Route
             path="/"

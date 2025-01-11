@@ -3,10 +3,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
 import Navbar from "./Navbar";
 import LostAndFound from "../artifacts/contracts/LostAndFound.sol/LostAndFound.json";
+import { toast } from "react-hot-toast";
 
 const contractAddress = "0x749855Fa678f0731273bF3e35748375CaFb34511";
 
-const SubmitFoundItem = () => {
+const SubmitFoundItem = ({ account }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const selectedItem = location.state?.selectedItem;
@@ -64,11 +65,15 @@ const SubmitFoundItem = () => {
       await transaction.wait();
       console.log("Transaction confirmed");
 
-      alert("Found item submitted successfully!");
+      toast.success("Item marked as found! The owner will be notified.", {
+        duration: 5000,
+        position: "top-right",
+      });
+
       navigate("/recent-lost-items");
     } catch (error) {
       console.error("Error:", error);
-      alert("Error submitting found item: " + error.message);
+      toast.error("Error submitting found item: " + error.message);
     } finally {
       setIsSubmitting(false);
     }
