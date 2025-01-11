@@ -1,10 +1,9 @@
----
 
 # *Find&Earn: Lost and Found Platform*
 
 *Welcome to Find&Earn*, a decentralized platform where users can report and find lost items securely and transparently using blockchain technology. This platform leverages smart contracts to ensure that lost items can be reported, notifications can be sent to users, and rewards can be claimed—all in a decentralized environment.
 
----
+
 
 ## *Technologies Used*
 
