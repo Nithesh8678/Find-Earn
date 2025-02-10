@@ -18,6 +18,7 @@ import RecentLostItems from "./components/RecentLostItems";
 import { Toaster } from "react-hot-toast";
 import { toast } from "react-hot-toast";
 import Dashboard from "./components/Dashboard";
+import ImageSlider from "./components/ImageSlider";
 
 const contractAddress = "0x749855Fa678f0731273bF3e35748375CaFb34511"; // You'll get this after deployment
 
@@ -142,7 +143,7 @@ function App() {
   };
 
   return (
-    <Router>
+    <Router basename="/">
       <div className="min-h-screen">
         <Toaster />
         <Routes>
@@ -152,13 +153,14 @@ function App() {
               account ? (
                 <Navigate to="/home" />
               ) : (
-                <div className="min-h-screen flex items-center justify-center login-bg">
-                  <div className="absolute top-8 left-8">
+                <div className="min-h-screen flex flex-col items-center justify-center login-bg">
+                  <div>
+                    <ImageSlider />
                     <h1 className="text-4xl font-bold text-white mb-4 font-iceberg">
                       Find&Earn
                     </h1>
                   </div>
-                  <div className="p-8 rounded-lg backdrop-blur-md">
+                  <div className="p-8 rounded-lg backdrop-blur-md mt-8">
                     <WalletConnect account={account} setAccount={setAccount} />
                   </div>
                 </div>

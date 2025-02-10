@@ -10,6 +10,11 @@ const NotificationBell = ({ account }) => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [readNotifications, setReadNotifications] = useState(() => {
+    // Load read notifications from localStorage
+    const saved = localStorage.getItem(`readNotifications_${account}`);
+    return saved ? JSON.parse(saved) : [];
+  });
 
   // Clean up function to remove event listeners
   const cleanup = () => {
@@ -90,16 +95,16 @@ const NotificationBell = ({ account }) => {
 
       const userNotifs = await contract.getUserNotifications(account);
       const formattedNotifs = userNotifs
-        .filter((notif) => !notif.isRead) // Only show unread notifications
         .map((notif) => ({
           id: notif.id.toString(),
           itemId: notif.itemId.toString(),
           finder: notif.finder,
           message: notif.message,
           finderContact: notif.finderContact,
-          isRead: notif.isRead,
+          isRead: readNotifications.includes(notif.id.toString()),
           timestamp: new Date(notif.timestamp * 1000).toLocaleString(),
-        }));
+        }))
+        .filter((notif) => !notif.isRead); // Only show unread notifications
 
       setNotifications(formattedNotifs);
       setUnreadCount(formattedNotifs.length);
@@ -108,23 +113,36 @@ const NotificationBell = ({ account }) => {
     }
   };
 
-  const markAsRead = async (notificationId) => {
-    try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      const contract = new ethers.Contract(
-        contractAddress,
-        LostAndFound.abi,
-        signer
-      );
+  const markAsRead = (notificationId) => {
+    // Update local state
+    const updatedReadNotifications = [...readNotifications, notificationId];
+    setReadNotifications(updatedReadNotifications);
 
-      await contract.markNotificationAsRead(notificationId);
-      await fetchNotifications(); // Refresh notifications
-      setShowNotifications(false); // Close notification panel after marking as read
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
+    // Save to localStorage
+    localStorage.setItem(
+      `readNotifications_${account}`,
+      JSON.stringify(updatedReadNotifications)
+    );
+
+    // Update notifications list
+    setNotifications(notifications.filter((n) => n.id !== notificationId));
+    setUnreadCount((prev) => prev - 1);
+
+    // Close panel if no more notifications
+    if (notifications.length === 1) {
+      setShowNotifications(false);
     }
   };
+
+  // Save read notifications to localStorage when they change
+  useEffect(() => {
+    if (account) {
+      localStorage.setItem(
+        `readNotifications_${account}`,
+        JSON.stringify(readNotifications)
+      );
+    }
+  }, [readNotifications, account]);
 
   if (!account) return null; // Don't render if no account is connected
 
